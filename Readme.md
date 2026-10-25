@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/Version-1.1.0-purple)
+![Version](https://img.shields.io/badge/Version-1.1.1-purple)
 ![Last Update](https://img.shields.io/badge/Updated%20at-25%20Oct%202026-blue)
 
 # Node.js Web Scraper
