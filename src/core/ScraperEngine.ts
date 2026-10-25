@@ -5,7 +5,24 @@ import ScraperHeaders from "./ScraperHeaders";
 import ScraperCookie from "./ScraperCookie";
 import { BrowserScraperCallableType, SCRAPER_BROWSER, ScraperCallableType, ScraperEngineBrowserConfigType, ScraperEngineConfigType, ScraperInfoSummaryType, ScraperInfoType, ScraperResultType } from "./types";
 import { CheerioAPI, load } from "cheerio";
-import { Browser, chromium, firefox, Page } from "playwright";
+import type { Browser, Page } from "playwright";
+type PlaywrightModule = typeof import("playwright");
+
+let playwrightPromise: Promise<PlaywrightModule> | undefined;
+
+async function loadPlaywright(): Promise<PlaywrightModule> {
+    playwrightPromise ??= import("playwright").catch((err: any) => {
+        playwrightPromise = undefined; // allow retry after the user installs it
+        if (err?.code === "ERR_MODULE_NOT_FOUND" || err?.code === "MODULE_NOT_FOUND") {
+            throw new Error(
+                'Playwright is required for browser scraping but is not installed. ' +
+                'Run "npm i playwright" and then "npx playwright install".'
+            );
+        }
+        throw err;
+    });
+    return playwrightPromise;
+}
 
 export default class ScraperEngine {
 
@@ -102,6 +119,8 @@ export default class ScraperEngine {
     }
 
     async startFromBrowser(browserId: SCRAPER_BROWSER = SCRAPER_BROWSER.CHROMIUM){
+
+        const { chromium, firefox } = await loadPlaywright();
 
         if(browserId === SCRAPER_BROWSER.CHROMIUM) {
             if(this.#browser && this.#browserType !== SCRAPER_BROWSER.CHROMIUM)

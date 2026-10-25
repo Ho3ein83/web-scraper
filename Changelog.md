@@ -1,3 +1,8 @@
+| **Version 1.1.1**                                                     |
+|:----------------------------------------------------------------------|
+| Published the package on npmjs.com and now can be imported as package |
+| Updated the documentation                                             |
+
 | **Version 1.1.0**                                            |
 |:-------------------------------------------------------------|
 | Added simultaneous scraping feature                          |

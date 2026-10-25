@@ -1,3 +1,5 @@
+/node_modules/
+/dist/
 /digikala.html
 /github.html
 /imdb.html

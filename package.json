@@ -1,24 +1,72 @@
 {
-  "name": "web-scraper",
-  "version": "1.1.0",
-  "description": "Advances web scraper for HTML pages data extraction from both local file and browser (Chromium & Firefox) with authentication support.",
-  "main": "dist/index.js",
+  "name": "@ho3ein.ie/web-scraper",
+  "version": "1.1.1",
+  "description": "Advanced web scraper for HTML pages data extraction from both local file and browser (Chromium & Firefox) with authentication support.",
+  "main": "./dist/main.js",
+  "module": "./dist/main.mjs",
+  "types": "./dist/main.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/main.d.mts",
+        "default": "./dist/main.mjs"
+      },
+      "require": {
+        "types": "./dist/main.d.ts",
+        "default": "./dist/main.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "Readme.md",
+    "Changelog.md",
+    "License.txt"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "build": "tsup src/main.ts --format esm,cjs --dts --clean",
+    "localBuild": "npm run build && npm pack",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ho3ein83/web-scraper.git"
+  },
+  "keywords": [
+    "web scraper",
+    "scraper",
+    "browser scraping"
+  ],
   "author": "ho3ein.ie",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "dependencies": {
     "axios": "^1.20.0",
-    "cheerio": "^1.2.0",
+    "cheerio": "^1.2.0"
+  },
+  "peerDependencies": {
     "playwright": "^1.63.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^22.20.3",
+    "tsup": "^9.0.0",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "playwright": "^1.63.0",
+    "typescript": "~5.9"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

@@ -7,12 +7,13 @@ Using this tool, you can scrape many websites with basic HTTP request, browser s
 
 <!-- TOC -->
 * [Node.js Web Scraper](#nodejs-web-scraper)
+  * [Installation](#installation)
+    * [Installing the browser (optional)](#installing-the-browser-optional)
   * [Browser scraping](#browser-scraping)
     * [Output](#output)
   * [Headless scraping](#headless-scraping)
     * [Output](#output-1)
   * [HTML Scraping (headless)](#html-scraping-headless)
-  * [Installation](#installation)
   * [API](#api)
     * [Load scraper engine first](#load-scraper-engine-first)
     * [Options](#options)
@@ -38,12 +39,36 @@ Using this tool, you can scrape many websites with basic HTTP request, browser s
   * [License (GPL-3.0)](#license-gpl-30)
 <!-- TOC -->
 
+## Installation
+
+Install the package `@ho3ein.ie/web-scraper` using `npm` or add it to your dependencies.
+```shell
+npm i @ho3ein.ie/web-scraper
+```
+Import it into your project:
+```javascript
+// ESM
+import { ScraperEngine } from "@ho3ein.ie/web-scraper";
+```
+```javascript
+// CommonJS
+const { ScraperEngine } = require("@ho3ein.ie/web-scraper");
+```
+
+### Installing the browser (optional)
+To use browser scraping feature you must install **Chromium** or **Firefox** browser by running these two commands:
+```shell
+"npm i playwright
+```
+then:
+```shell
+npx playwright install
+```
+
 ## Browser scraping
 This feature uses `playwright` library to run a browser process (Chromium or Firefox) on your machine, to scrape websites with dynamic contents or client-side rendering.
 ```typescript
-import ScraperEngine from "./core/ScraperEngine";
-import DigikalaScraper from "./scrapers/DigikalaScraper";
-import { SCRAPER_BROWSER } from "./core/types";
+const { ScraperEngine, DigikalaScraper, SCRAPER_BROWSER } = require("@ho3ein.ie/web-scraper");
 
 // Digikala Scraper (browser)
 const digikalaScraper = new ScraperEngine();
@@ -101,9 +126,7 @@ It also gives you a feature to modify headers and cookies to simulate real brows
 
 Headless scrapers use `cheerio` library as the parser and allows you to find information inside the HTML page.
 ```typescript
-import ScraperEngine from "./core/ScraperEngine";
-import GitHubScraper from "./scrapers/GitHubScraper";
-import { SCRAPER_BROWSER } from "./core/types";
+const { ScraperEngine, GitHubScraper } = require("@ho3ein.ie/web-scraper");
 
 // GitHub Scraper (headless)
 const githubScraper = new ScraperEngine();
@@ -136,20 +159,22 @@ Map(2) {
 ## HTML Scraping (headless)
 HTML scraping allows you to extract data from local HTML files or strings, or even connect it to your own page loader or browser.
 
-```typescript
+```javascript
+const { ScraperEngine } = require("@ho3ein.ie/web-scraper");
+
 const htmlScraper = new ScraperEngine();
 
 htmlScraper.capture(console.log)
            .addScraper("movie", $ => {
-               const title = $.extract({ data: '.my-movie > .title' }).data;
-               const rating = $.extract({ data: '.my-movie > .rating' }).data;
-               const startDate = $.extract({ data: '.my-movie > .start-date' }).data;
-               const endDate = $.extract({ data: '.my-movie > .end-date' }).data;
-               return {
-                   title, rating,
-                   start_date: startDate,
-                   end_date: endDate
-               }
+             const title = $.extract({ data: '.my-movie > .title' }).data;
+             const rating = $.extract({ data: '.my-movie > .rating' }).data;
+             const startDate = $.extract({ data: '.my-movie > .start-date' }).data;
+             const endDate = $.extract({ data: '.my-movie > .end-date' }).data;
+             return {
+               title, rating,
+               start_date: startDate,
+               end_date: endDate
+             }
            })
            .startFromFile("/path/to/movie.html")
            .catch(console.error)
@@ -186,31 +211,15 @@ Hello Scraper!
 
 -----------
 
-## Installation
-Clone the repository:
-```bash
-git clone https://github.com/Ho3ein83/web-scraper
-```
-`cd` into it:
-```bash
-cd web-scraper
-```
-Install dependencies:
-```bash
-npm install
-```
-Install browser (only if you need browser scraping feature):
-```bash
-npx playwright install
-```
-
------------
-
 ## API
 ### Load scraper engine first
 Before doing anything, import the scraper engine:
 ```typescript
-import ScraperEngine from "./core/ScraperEngine";
+import { ScraperEngine } from "@ho3ein.ie/web-scraper";
+```
+or:
+```typescript
+const { ScraperEngine } = require("@ho3ein.ie/web-scraper");
 ```
 
 Then create a new instance:
@@ -606,7 +615,7 @@ They also help you manage them much easier by attaching and detaching scrapers, 
 ### How to make an attachable scraper?
 Create a JavaScript file (preferably in `src/scrapers` directory):
 ```javascript
-import ScraperEngine from "../core/ScraperEngine";
+const { ScraperEngine } = require("@ho3ein.ie/web-scraper");
 
 const GitHubScraper = {
     name: "GitHub",
@@ -622,8 +631,7 @@ export default GitHubScraper;
 ```
 Or in TypeScript:
 ```typescript
-import { ScraperInfoType } from "../core/types";
-import ScraperEngine from "../core/ScraperEngine";
+const { ScraperEngine, ScraperInfoType } = require("@ho3ein.ie/web-scraper");
 
 const GitHubScraper: ScraperInfoType = {
     name: "GitHub",
@@ -640,8 +648,7 @@ export default GitHubScraper;
 
 Now you can access to the engine easily inside `run` function. Register scraper fields with `addScraper` or `addBrowserScraper` methods:
 ```typescript
-import { ScraperInfoType } from "../core/types";
-import ScraperEngine from "../core/ScraperEngine";
+const { ScraperEngine, ScraperInfoType } = require("@ho3ein.ie/web-scraper");
 
 const GitHubScraper: ScraperInfoType = {
     name: "GitHub",
