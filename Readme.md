@@ -58,7 +58,7 @@ const { ScraperEngine } = require("@ho3ein.ie/web-scraper");
 ### Installing the browser (optional)
 To use browser scraping feature you must install **Chromium** or **Firefox** browser by running these two commands:
 ```shell
-"npm i playwright
+npm i playwright
 ```
 then:
 ```shell
@@ -235,23 +235,24 @@ const options = {
     url: "https://google.com",
     // url: new URL("https://google.com"), // Also valid
     timeout: 10000,
-    auth: credentials, // must match AxiosBasicCredentials or be null
-    axiosOptions: axiosOptions, // must match AxiosRequestConfig or be null
+    auth: credentials, // must match AxiosBasicCredentials (or leave it unset)
+    axiosOptions: axiosOptions, // must match AxiosRequestConfig (or leave it unset)
     browser: {
-        waitUntil: "domcontentloaded" // Can be either "load", "domcontentloaded", "networkidle", "commit"
+        waitUntil: "domcontentloaded", // Can be either "load", "domcontentloaded", "networkidle" or "commit"
+        timeout: 30000
     }
 };
 const myScraper = new ScraperEngine(options);
 ```
 
-|  Option Name   |                                                                                Description                                                                                |               Type               | Default | Optional |
-|:--------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------:|:-------:|:--------:|
-|     `url`      |                                                                           Target URL to scrape                                                                            |    `string` / `URL` / `null`     |  null   |  ✅️ Yes  |
-|   `timeout`    |                                              Timeout (in milliseconds) for Axios and GET requests (not the browser timeout)                                               |             `number`             |  10000  |  ✅️ Yes  |
-|  `loadImages`  | Whether to download images when loading a page in browser. Set it to `true` only if you want to take a browser screenshot, otherwise it can slow down the loading process |            `boolean`             |  false  |  ✅️ Yes  |
-|     `auth`     |                                            Axios authentication object. Only needed if the target site requires authentication                                            |     `AxiosBasicCredentials`      |  none   |  ✅️ Yes  |
-| `axiosOptions` |                                      Axios options object. See more details [here](https://axios.rest/pages/advanced/request-config)                                      |       `AxiosRequestConfig`       |  none   |  ✅️ Yes  |
-|   `browser`    |                                                            Browser configuration object. (see the table below)                                                            | `ScraperEngineBrowserConfigType` |  none   |  ✅️ Yes  |
+|  Option Name   |                                                                                   Description                                                                                   |               Type               | Default | Optional |
+|:--------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------:|:-------:|:--------:|
+|     `url`      |                                                                              Target URL to scrape                                                                               |    `string` / `URL` / `null`     |  null   |  ✅️ Yes  |
+|   `timeout`    |                                                 Timeout (in milliseconds) for Axios and GET requests (not the browser timeout)                                                  |             `number`             |  10000  |  ✅️ Yes  |
+|  `loadImages`  |    Whether to download images when loading a page in browser. Set it to `true` only if you want to take a browser screenshot, otherwise it can slow down the loading process    |            `boolean`             |  false  |  ✅️ Yes  |
+|     `auth`     | Axios authentication object. Only needed if the target site requires authentication. More details [here](https://axios.rest/pages/advanced/authentication.html#http-basic-auth) |     `AxiosBasicCredentials`      |  none   |  ✅️ Yes  |
+| `axiosOptions` |                                         Axios options object. See more details [here](https://axios.rest/pages/advanced/request-config)                                         |       `AxiosRequestConfig`       |  none   |  ✅️ Yes  |
+|   `browser`    |                                                               Browser configuration object. (see the table below)                                                               | `ScraperEngineBrowserConfigType` |  none   |  ✅️ Yes  |
 
 |                                                                                                                                                                                                                                                                                                                                                                                                                      ScraperEngineBrowserConfigType                                                                                                                                                                                                                                                                                                                                                                                                                      |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
@@ -328,13 +329,13 @@ This function is asynchronous, so you need to either wrap it in an `async` funct
 (async function(){
     // Use default browser
     await myScraper.startFromBrowser();
-    // or use Firefox:
+    // or use Firefox explicitly:
     // myScraper.startFromBrowser(SCRAPER_BROWSER.FIREFOX);
-    // or use Chromium:
+    // or use Chromium explicitly:
     // myScraper.startFromBrowser(SCRAPER_BROWSER.CHROMIUM);
     
-    // You need to terminate the browser to free up some memory
-    // and release the event loop to prevent blocking your app.
+    // You need to terminate the browser to free up the memory
+    // and release the event loop to exit successfully.
     // If the last scraper page wasn't completely finished loading,
     // it will close that page anyway since it was either scraped
     // or got stuck.
@@ -343,7 +344,7 @@ This function is asynchronous, so you need to either wrap it in an `async` funct
 ```
 > **Select a browser:** you must specify the browser you want to use by passing `SCRAPER_BROWSER.FIREFOX` or `SCRAPER_BROWSER.CHROMIUM` to this method or leave it empty to use default browser.
 
-> **Install browsers:** browsers must be already installed to get this method working, you can install them by running `npx playwright install` command.
+> **Install browsers:** browsers must be already installed to get this method working, you can install them by running `npx playwright install` command. You also need to install Playwright package if didn't already install using `npm i playwright`
 
 -----------
 
@@ -353,8 +354,9 @@ This method opens a new browser page and starts a new scraping process mid-work.
 JavaScript example:
 ```javascript
 // ImdbScraper.js
+// First import required objects such as ScraperEnging from @ho3ein.ie/web-scraper
 
-// In TypeScript:
+// To specifiy types in TypeScript use:
 // import { Page } from "playwright";
 // async function extractImdbInfo(page: Page){...}
 
@@ -567,7 +569,7 @@ console.log(headers);
    }
 */
 
-// Clears every header
+// Clears headers
 myScraper.header.clear();
 ```
 
@@ -599,21 +601,21 @@ console.log(cookies);
    session=me-abc1234; token=my-token
 */
 
-// Clears every cookie
+// Clear cookies
 myScraper.cookie.clear();
 ```
 
 -----------
 
 ## Attachable scrapers
-Attachable scrapers are just an object that identifies scrapers to the engine, which helps it understand the behavior of that scraper and validate the URL before scraping.
+Attachable scraper is an object that introduces the scraper to the engine, which helps it understand the behavior of that scraper and validate the URL before scraping.
 
 They also help you manage them much easier by attaching and detaching scrapers, which makes switching between them much easier.
 
 -----------
 
 ### How to make an attachable scraper?
-Create a JavaScript file (preferably in `src/scrapers` directory):
+Create a JavaScript file with this content:
 ```javascript
 const { ScraperEngine } = require("@ho3ein.ie/web-scraper");
 
@@ -635,7 +637,7 @@ const { ScraperEngine, ScraperInfoType } = require("@ho3ein.ie/web-scraper");
 
 const GitHubScraper: ScraperInfoType = {
     name: "GitHub",
-    type: "headless", // can be "browser" or "both" too
+    type: "headless", // Allowed options are: "headless" / "browser" / "both"
     run: (engine: ScraperEngine) => {
         // ...
     },
@@ -646,7 +648,7 @@ const GitHubScraper: ScraperInfoType = {
 export default GitHubScraper;
 ```
 
-Now you can access to the engine easily inside `run` function. Register scraper fields with `addScraper` or `addBrowserScraper` methods:
+Now you can access to the engine easily inside `run` function. Register scraper fields with `addScraper` or `addBrowserScraper` methods (other public `ScraperEngine` methods are allowed as well):
 ```typescript
 const { ScraperEngine, ScraperInfoType } = require("@ho3ein.ie/web-scraper");
 
