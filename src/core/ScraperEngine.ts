@@ -3,9 +3,9 @@ import fs from "fs";
 
 import ScraperHeaders from "./ScraperHeaders";
 import ScraperCookie from "./ScraperCookie";
-import { BrowserScraperCallableType, SCRAPER_BROWSER, ScraperCallableType, ScraperEngineConfigType, ScraperInfoType, ScraperResultType } from "./types";
+import { BrowserScraperCallableType, SCRAPER_BROWSER, ScraperCallableType, ScraperEngineBrowserConfigType, ScraperEngineConfigType, ScraperInfoSummaryType, ScraperInfoType, ScraperResultType } from "./types";
 import { CheerioAPI, load } from "cheerio";
-import { Browser, chromium, firefox } from "playwright";
+import { Browser, chromium, firefox, Page } from "playwright";
 
 export default class ScraperEngine {
 
@@ -27,9 +27,16 @@ export default class ScraperEngine {
 
     #browserType: SCRAPER_BROWSER;
 
+    #onHtmlLoad: ((html: string) => string|null)|null = null;
+
+    #currentPage: Page | null = null;
+
+    #scrapersInfo: { [name: string]: ScraperInfoSummaryType } = {};
+
     readonly DEFAULT_CONFIG: ScraperEngineConfigType = {
         url: null,
         timeout: 10000,
+        loadImages: false,
         browser: {
             waitUntil: "domcontentloaded"
         }
@@ -37,7 +44,7 @@ export default class ScraperEngine {
 
     constructor(config: ScraperEngineConfigType = {}){
 
-        this.#config = Object.assign(config, this.DEFAULT_CONFIG);
+        this.#config = Object.assign(this.DEFAULT_CONFIG, config);
 
         // noinspection DuplicatedCode
         this.#header = new ScraperHeaders();
@@ -59,6 +66,13 @@ export default class ScraperEngine {
     }
 
     startFromHtml(html: string): Promise<CheerioAPI>{
+
+        if(typeof this.#onHtmlLoad === "function") {
+            const response = this.#onHtmlLoad(html);
+            if(typeof response !== "string")
+                return Promise.reject("Result captured without returning any HTML");
+            html = response;
+        }
 
         return new Promise((resolve, reject) => {
 
@@ -89,15 +103,16 @@ export default class ScraperEngine {
 
     async startFromBrowser(browserId: SCRAPER_BROWSER = SCRAPER_BROWSER.CHROMIUM){
 
-
         if(browserId === SCRAPER_BROWSER.CHROMIUM) {
             if(this.#browser && this.#browserType !== SCRAPER_BROWSER.CHROMIUM)
                 this.terminate();
-            this.#browser = await chromium.launch();
+            this.log("Launching Chromium...");
+            this.#browser = await chromium.launch({ timeout: this.#config.browser?.timeout || undefined });
         }
         else if(browserId === SCRAPER_BROWSER.FIREFOX) {
             if(this.#browser && this.#browserType !== SCRAPER_BROWSER.FIREFOX)
                 this.terminate();
+            this.log("Launching Firefox...");
             this.#browser = await firefox.launch();
         }
         else{
@@ -111,8 +126,19 @@ export default class ScraperEngine {
         if(!url)
             return Promise.reject("No URL to scrape.");
 
-        const page = await this.#browser.newPage();
-        await page.goto(
+        this.log("Opening requested page...");
+        this.#currentPage = await this.#browser.newPage();
+
+        if(!this.#config.loadImages){
+            await this.#currentPage.route("**/*", route => {
+                if(route.request().resourceType() === "image")
+                    return route.abort();
+                return route.continue();
+            });
+            this.log("Image preview is disabled, webpage images won't get downloaded unless you set 'loadImages' to 'true' in engine config");
+        }
+
+        await this.#currentPage.goto(
             url,
             { waitUntil: this.#config.browser?.waitUntil || "domcontentloaded" }
         );
@@ -121,13 +147,35 @@ export default class ScraperEngine {
             const [name, callbacks] = scraper;
             let lastValue = undefined;
             for(const callback of callbacks)
-                lastValue = await callback(page, lastValue);
+                lastValue = await callback(this.#currentPage, lastValue);
             this.#results.set(name, lastValue);
         }
 
-        await page.close();
+        await this.#currentPage.close();
+
+        this.#currentPage = null;
 
         this.callCapture();
+
+    }
+
+    async scrapeNewPage(url: string, callback: BrowserScraperCallableType, config: ScraperEngineBrowserConfigType | null = null){
+
+        if(!this.#browser)
+            return Promise.reject("The browser is not initialized yet or it's been closed, try running 'scrapeNewPage' method inside your scraper callback added using 'addBrowserScraper' method");
+
+        if(!this.#currentPage || this.#currentPage.isClosed())
+            return Promise.reject("Current page is not initialized yet or it's been closed. Use 'scrapeNewPage' method only inside browser scraper which you've added using 'addBrowserScraper' method.");
+
+        const newPage = await this.#browser.newPage();
+
+        await newPage.goto(url, { waitUntil: config?.waitUntil || this.#config.browser?.waitUntil || "domcontentloaded" });
+
+        const results = await callback(newPage, undefined);
+
+        await newPage.close();
+
+        return results;
 
     }
 
@@ -206,7 +254,7 @@ export default class ScraperEngine {
     }
 
     attachScraper(scraper: ScraperInfoType): this{
-        const { name, run, type, description, urlFormat } = scraper;
+        const { name, run, type, ...rest } = scraper;
         if(typeof run !== "function")
             throw new Error("Scraper doesn't have a valid runner, add 'run' element to your scraper returned object.");
         if(!type || !["headless", "browser", "both"].includes(type))
@@ -214,12 +262,18 @@ export default class ScraperEngine {
         // noinspection SuspiciousTypeOfGuard
         if(typeof name !== "string" || !name.trim())
             throw new Error("Scraper doesn't have a proper name, set a value inside 'name' element in your scraper returned object.");
+        this.#scrapersInfo[name] = { type, ...rest };
         run(this);
         return this;
     }
 
     dump(){
         console.log(this.results);
+        return this;
+    }
+
+    exportJson(filePath: string){
+        fs.writeFileSync(filePath, JSON.stringify(Object.fromEntries(this.results)));
         return this;
     }
 
@@ -244,6 +298,30 @@ export default class ScraperEngine {
         return this;
     }
 
+    onHtmlLoad(callback: ((html: string) => null|string)){
+        if(typeof callback === "function")
+            this.#onHtmlLoad = callback;
+        return this;
+    }
+
+    async promiseAllWithProgress<T = unknown>(promises: Promise<unknown>[], chunkSize: number = 3, onProgress: null | ((completed: number, total: number) => void) = null): Promise<T[]> {
+        const results: T[] = [];
+        const total = promises.length;
+        let completed = 0;
+
+        for (let i = 0; i < total; i += chunkSize) {
+            const chunk = promises.slice(i, i + chunkSize);
+            const chunkResults = await Promise.all(chunk);
+
+            results.push(...chunkResults as T[]);
+            completed += chunk.length;
+
+            onProgress?.(completed, total);
+        }
+
+        return results;
+    }
+
     static createHeader(): ScraperHeaders{
         return new ScraperHeaders();
     }
@@ -258,6 +336,10 @@ export default class ScraperEngine {
 
     createCookie(): ScraperCookie{
         return ScraperEngine.createCookie();
+    }
+
+    log(text: unknown){
+        console.log(text);
     }
 
     get results(): ScraperResultType{

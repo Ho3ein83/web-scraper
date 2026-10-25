@@ -1,4 +1,5 @@
-![Version](https://img.shields.io/badge/Version-1.0.0-pink)
+![Version](https://img.shields.io/badge/Version-1.1.0-purple)
+![Last Update](https://img.shields.io/badge/Updated%20at-25%20Oct%202026-blue)
 
 # Node.js Web Scraper
 This is a web scraper project, built for Node.js with TypeScript.
@@ -14,17 +15,22 @@ Using this tool, you can scrape many websites with basic HTTP request, browser s
   * [Installation](#installation)
   * [API](#api)
     * [Load scraper engine first](#load-scraper-engine-first)
+    * [Options](#options)
+  * [Methods](#methods)
     * [`setUrl`](#seturl)
     * [`addScraper`](#addscraper)
     * [`addBrowserScraper`](#addbrowserscraper)
     * [`startFromHtml`](#startfromhtml)
     * [`startFromFile`](#startfromfile)
     * [`async startFromBrowser`](#async-startfrombrowser)
+    * [`async scrapeNewPage` (simultaneous scraping)](#async-scrapenewpage-simultaneous-scraping)
     * [`start`](#start)
     * [`saveTo` (headless only)](#saveto-headless-only)
     * [`capture`](#capture)
     * [`dump`](#dump)
+    * [`exportJson`](#exportjson)
     * [`reset`](#reset)
+    * [`async promiseAllWithProgress`](#async-promiseallwithprogress)
     * [`header`](#header)
     * [`cookie`](#cookie)
   * [Attachable scrapers](#attachable-scrapers)
@@ -87,6 +93,8 @@ digikalaScraper.setUrl("https://www.digikala.com/product/dkp-21791906/%DA%A9%D9%
 ```
 The `results` here in `capture` is a Map with type `Map<string, any>` AKA `ScraperResultType`.
 
+-----------
+
 ## Headless scraping
 Headless scraping only lets you scrape data from server-side rendered websites, but it is faster and more memory efficient than browser scraping.
 It also gives you a feature to modify headers and cookies to simulate real browser connection and also supports authorization.
@@ -122,6 +130,8 @@ Map(2) {
   }
 }
 ```
+
+----------
 
 ## HTML Scraping (headless)
 HTML scraping allows you to extract data from local HTML files or strings, or even connect it to your own page loader or browser.
@@ -174,6 +184,8 @@ htmlScraper.capture(map => console.log(map.get("extracted_text")))
 Hello Scraper!
 ```
 
+-----------
+
 ## Installation
 Clone the repository:
 ```bash
@@ -192,6 +204,8 @@ Install browser (only if you need browser scraping feature):
 npx playwright install
 ```
 
+-----------
+
 ## API
 ### Load scraper engine first
 Before doing anything, import the scraper engine:
@@ -203,11 +217,14 @@ Then create a new instance:
 ```typescript
 const myScraper = new ScraperEngine();
 ```
+
+### Options
 Pass the options object if needed:
 ```typescript
 // Each option is optional and can be ommited
 const options = {
-    url: new URL("https://google.com"),
+    url: "https://google.com",
+    // url: new URL("https://google.com"), // Also valid
     timeout: 10000,
     auth: credentials, // must match AxiosBasicCredentials or be null
     axiosOptions: axiosOptions, // must match AxiosRequestConfig or be null
@@ -217,15 +234,35 @@ const options = {
 };
 const myScraper = new ScraperEngine(options);
 ```
+
+|  Option Name   |                                                                                Description                                                                                |               Type               | Default | Optional |
+|:--------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------:|:-------:|:--------:|
+|     `url`      |                                                                           Target URL to scrape                                                                            |    `string` / `URL` / `null`     |  null   |  ✅️ Yes  |
+|   `timeout`    |                                              Timeout (in milliseconds) for Axios and GET requests (not the browser timeout)                                               |             `number`             |  10000  |  ✅️ Yes  |
+|  `loadImages`  | Whether to download images when loading a page in browser. Set it to `true` only if you want to take a browser screenshot, otherwise it can slow down the loading process |            `boolean`             |  false  |  ✅️ Yes  |
+|     `auth`     |                                            Axios authentication object. Only needed if the target site requires authentication                                            |     `AxiosBasicCredentials`      |  none   |  ✅️ Yes  |
+| `axiosOptions` |                                      Axios options object. See more details [here](https://axios.rest/pages/advanced/request-config)                                      |       `AxiosRequestConfig`       |  none   |  ✅️ Yes  |
+|   `browser`    |                                                            Browser configuration object. (see the table below)                                                            | `ScraperEngineBrowserConfigType` |  none   |  ✅️ Yes  |
+
+|                                                                                                                                                                                                                                                                                                                                                                                                                      ScraperEngineBrowserConfigType                                                                                                                                                                                                                                                                                                                                                                                                                      |
+|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+| <table><tr><th>Optionn Name</th><th>Description</th><th>Type</th><th>Default</th><th>Optional</th></tr><tr><td align="center">`waitUntil`</td><td align="center">Specified when to start scraping, if the page uses CSR or Ajax and the content is being rendered with JavaScript in the browser, use `"networkidle"`, otherwise you can use `"domcontentloaded"` for faster scraping.</td><td align="center">`"load"` / `"domcontentloaded"` / `"networkidle"` / `"commit"`</td><td align="center">`"domcontentloaded"`</td><td align="center">✅️ Yes</td></tr><tr><td align="center">`timeout`</td><td align="center">The browser timeout (in milliseconds) before the page gets to the desired state (e.g: networkidle).</td><td align="center">`number`</td><td align="center">Browser default timeout (~30 seconds)</td><td align="center">✅️ Yes</td></tr></table> |
+
 Each instance can be used to scrape different URLs with different methods, so you don't need to create a new instance for each scraper.
 
-Then only time you create multiple instances is when you want to do parallel scraping.
+Then only time you create multiple instances is when you want to do parallel scraping or use multiple services (without confusion).
+
+-----------
+
+## Methods
 
 ### `setUrl`
 This method changed the current URL of the scraper:
 ```typescript
 myScraper.setUrl("https://github.com/Ho3ein83/web-scraper");
 ```
+
+-----------
 
 ### `addScraper`
 Adds a new field scraper. Each field scraper searches the current page and finds the information you need, then returns it and gets added to the result map.
@@ -238,6 +275,8 @@ myScraper.addScraper("username", $ => {
 The `$` in the code is `CheerioAPI` object returned from [cheerio.load](https://cheerio.js.org/docs/api/variables/load/) method.
 Use this API to search your HTML page. Read [CheerioAPI](https://cheerio.js.org/docs/api/interfaces/cheerioapi/) for more details.
 > **Note**: this method only works for **headless** scrapers (and not browser).
+
+-----------
 
 ### `addBrowserScraper`
 Adds a bew field scraper for browser scrapers.
@@ -252,7 +291,8 @@ myScraper.addBrowserScraper("product", async page => {
 ```
 The `page` argument above is `Page` interface from `playwright` package. Use [this document](https://playwright.dev/docs/api/class-page) to learn more about pages.
 > **Note**: this method only works for **browser** scrapers (and not headless).
-> 
+
+-----------
 
 ### `startFromHtml`
 Starts the scraping process from an HTML string.
@@ -260,11 +300,15 @@ Starts the scraping process from an HTML string.
 myScraper.startFromHtml("<p>Hello World</p>")
 ```
 
+-----------
+
 ### `startFromFile`
 Starts the scraping process from an HTML file.
 ```typescript
 myScraper.startFromFile("/path/to/page.html")
 ```
+
+-----------
 
 ### `async startFromBrowser`
 Starts a new browser process and opens a new page with the given URL, then waits until the network state is idle or DOC content is already loaded, then processes the page for scraping.
@@ -292,6 +336,102 @@ This function is asynchronous, so you need to either wrap it in an `async` funct
 
 > **Install browsers:** browsers must be already installed to get this method working, you can install them by running `npx playwright install` command.
 
+-----------
+
+### `async scrapeNewPage` (simultaneous scraping)
+This method opens a new browser page and starts a new scraping process mid-work. For example, you extract IMDB IDs from a website, then you start scraping the details about those titles by their IDs, then group them back and finish the process and the engine cleans everything up after termination.
+
+JavaScript example:
+```javascript
+// ImdbScraper.js
+
+// In TypeScript:
+// import { Page } from "playwright";
+// async function extractImdbInfo(page: Page){...}
+
+async function extractImdbInfo(page){
+    // Extract data from `page`
+    // ...
+    return {
+        imdb_id: movieTconst,
+        title: movieTitle,
+        poster: posterUrl,
+        rating: movieRating,
+        // ...
+    }
+}
+
+const ImdbScraper = {
+    name: "IMDB",
+    description: "Scrape IMDB movies from an article",
+    type: "browser",
+    run: engine => {
+
+        // Need a parent scraper
+        engine.addBrowserScraper("movies", async (page: Page) => {
+            
+          const results = {};
+
+          const imdbIds = [];
+          // Extract IMDB IDs (tconst) from an article and add them to `imdbIds`
+          // ...
+          const promises = [];
+          
+          // Create a new job for each item
+          // Movie IDs were extracted from "example.com" but
+          // their information are going to be extracted from "imdb.com"
+          for(const tconst of imdbIds){
+              const url = "https://www.imdb.com/title/" + tconst;
+              promises.push(engine.scrapeNewPage(url, extractImdbInfo));
+              // Or pass arguments to the callback:
+              // promises.push(engine.scrapeNewPage(url, async (page) => await extractImdbInfo(tconst, page));
+          }
+          
+          // Scrape 3 URLs at a time
+          const maxTabs = 3;
+          const all = await engine.promiseAllWithProgress(promises, maxTabs);
+
+          // Parse the result
+          for(const item of all){
+              result[item.id] = {
+                  title: item.title,
+                  poster: item.poster,
+                  rating: item.rating
+              };
+          }
+          
+          return results;
+          
+        });
+        
+    },
+    urlFormat: /https:\/\/example.com\/.*/,
+}
+
+export default ImdbScraper;
+```
+```javascript
+// index.js
+import ImdbScraper from "./ImdbScraper";
+
+const config = {
+  browser: {
+    waitUntil: "networkidle"
+  },
+  loadImages: false
+}
+
+const myScraper = new ScraperEngine(config);
+myScraper.attachScraper(ImdbScraper)
+         .setUrl("https://example.com/some-movie-article")
+         .startFromBrowser(SCRAPER_BROWSER.CHROMIUM)
+         .then(() => myScraper.exportJson("movies.json")) // Dumps the result to a JSON file
+         .catch(console.error)
+         .finally(() => myScraper.terminate()); // Don't forget to terminate
+```
+
+-----------
+
 ### `start`
 Starts a headless scraper.
 ```typescript
@@ -308,12 +448,16 @@ function onFail(error){
 myScraper.start(onSuccess, onFail);
 ```
 
+-----------
+
 ### `saveTo` (headless only)
 This method allows you to save the whole HTML page into a file.
 ```typescript
 myScraper.setUrl("https://google.com")
          .saveTo("google.html");
 ```
+
+-----------
 
 ### `capture`
 Add a capture listener. The give callback gets called everytime a new result gets generated.
@@ -333,11 +477,23 @@ or simply:
 myScraper.capture(console.log);
 ```
 
+-----------
+
 ### `dump`
 Prints the latest result to the console.
 ```typescript
 myScraper.dump();
 ```
+
+-----------
+
+### `exportJson`
+Exports the final result and saves it into a JSON file.
+```typescript
+myScraper.exportJson("data.json");
+```
+
+-----------
 
 ### `reset`
 Resets all headers, cookies, headless scrapers, browser scrapers, latest result, capture listeners and config and terminates all open browsers unless you pass `false` to it.
@@ -345,6 +501,28 @@ Resets all headers, cookies, headless scrapers, browser scrapers, latest result,
 myScraper.reset(); // Terminate the browser and then reset everything 
 myScraper.reset(false); // Just reset everything, keep the browser open 
 ```
+
+-----------
+
+### `async promiseAllWithProgress`
+Splits a list of promises into a chunk and executes them simultaneously and reports the progress back.
+Example:
+
+```javascript
+const promises = [];
+for(const url of urls){
+    const job = myScraper.scrapeNewPage(url, myCallback);
+    promises.push(job);
+}
+const maxTabs = 3; // Open 3 tabs at a time
+const onProgress = (completed, total) => {
+  // Output example: Completed 3/8
+  console.log("Completed " + completed + "/" + total);
+}
+const results = await myScraper.promiseAllWithProgress(promises, maxTabs, onProgress);
+```
+
+-----------
 
 ### `header`
 Gets the header helper:
@@ -384,6 +562,8 @@ console.log(headers);
 myScraper.header.clear();
 ```
 
+-----------
+
 ### `cookie`
 Gets the cookie helper:
 ```typescript
@@ -414,10 +594,14 @@ console.log(cookies);
 myScraper.cookie.clear();
 ```
 
+-----------
+
 ## Attachable scrapers
 Attachable scrapers are just an object that identifies scrapers to the engine, which helps it understand the behavior of that scraper and validate the URL before scraping.
 
 They also help you manage them much easier by attaching and detaching scrapers, which makes switching between them much easier.
+
+-----------
 
 ### How to make an attachable scraper?
 Create a JavaScript file (preferably in `src/scrapers` directory):
@@ -426,12 +610,12 @@ import ScraperEngine from "../core/ScraperEngine";
 
 const GitHubScraper = {
     name: "GitHub",
-    type: "headless", // can be "browser" or "both" too
+    type: "headless", // Allowed options are: "headless" / "browser" / "both"
     run: engine => {
         // ...
     },
     description: "Extract basic information of a GitHub repository",
-    urlFormat: /^https:\/\/github.com\/.*/
+    urlFormat: /^https:\/\/github.com\/.*/ // Can be validated later, not used in the current version
 };
 
 export default GitHubScraper;
@@ -494,6 +678,8 @@ const GitHubScraper: ScraperInfoType = {
 
 export default GitHubScraper;
 ```
+
+-----------
 
 ## License (GPL-3.0)
 Any modification, redistribution or commercial use is allowed. Contributions are welcome as well.

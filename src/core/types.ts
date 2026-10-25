@@ -18,17 +18,28 @@ export enum SCRAPER_BROWSER {
 export type ScraperInfoType = {
     name: string,
     run: (engine: ScraperEngine) => any,
+    then?: (engine: ScraperEngine) => void,
     type?: "browser" | "headless" | "both",
     description?: string,
-    urlFormat?: RegExp,
+    urlFormat?: RegExp
 };
+
+export type ScraperInfoSummaryType = {
+    type?: ScraperInfoType["type"],
+    description?: ScraperInfoType["description"],
+    urlFormat?: ScraperInfoType["urlFormat"]
+}
+
+export type ScraperEngineBrowserConfigType = {
+    waitUntil?: "load" | "domcontentloaded" | "networkidle" | "commit",
+    timeout?: number | null
+}
 
 export type ScraperEngineConfigType = {
     url?: URL | null,
     timeout?: 10000,
+    loadImages?: boolean,
     auth?: AxiosBasicCredentials | undefined,
     axiosOptions?: AxiosRequestConfig | undefined,
-    browser?: {
-        waitUntil?: "load" | "domcontentloaded" | "networkidle" | "commit"
-    }
+    browser?: ScraperEngineBrowserConfigType
 }

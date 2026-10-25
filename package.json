@@ -1,7 +1,7 @@
 {
   "name": "web-scraper",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.1.0",
+  "description": "Advances web scraper for HTML pages data extraction from both local file and browser (Chromium & Firefox) with authentication support.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
@@ -9,7 +9,7 @@
     "start": "node dist/index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "ho3ein.ie",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.20.0",
